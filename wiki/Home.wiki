@@ -1,0 +1,12 @@
+#summary Kick-butt head pose tracking
+
+= Introduction =
+
+This is our wiki for our CMU Computer Vision 2011 Final Project on head-pose tracking using RGB and/or depth data for Human Robot Interaction applications.  
+
+-Ben Eckart & Heather Knight
+
+
+= Details =
+
+Currently evaluating algorithms.
