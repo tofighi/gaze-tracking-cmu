@@ -1,0 +1,22 @@
+<package>
+  <description brief="gaze-tracking-cmu">
+
+     gaze-tracking-cmu
+
+  </description>
+  <author>ben</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/gaze-tracking-cmu</url>
+  <depend package="rospy"/>
+  <depend package="sensor_msgs"/>
+  <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
+  <depend package="std_msgs"/>
+  <depend package="visualization_msgs"/>
+  <depend package="geometry_msgs"/>
+  
+
+</package>
+
+
