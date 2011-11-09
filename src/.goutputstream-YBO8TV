@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+import roslib; roslib.load_manifest('plane_fit')
+import rospy
+from sensor_msgs.msg import PointCloud2, PointField
+from visualization_msgs.msg import MarkerArray, Marker
+from geometry_msgs.msg import Point
+from numpy import *
+from point_cloud import read_points, create_cloud
+from scipy.linalg import eig, norm
+from random import randint
+from struct import pack
+
+# figure out the bag stuff? I would like a way to not have to use the kinect...
+
+def callback(pc, pub):
+    pub, pubMarkers = pub
+    
+    
+    colors = {0:0xff0000ff, # red
+              1:0x0000ffff, # green
+              2:0x00ffffff, # blue
+              3:0x00ff00ff, # purple
+              4:0x00000000
+              }
+              
+    colorsRGB = {0:(1,0,0),
+                 1:(0,1,0),
+                 2:(0,0,1),
+                 3:(1,0,1),
+                 4:(0,1,1)}
+
+    J = 4 # number of planes
+    s = .01 # sigma .0075 works well
+    s2 = s**2
+    zmax = 200.0 # max range for bad measurements (m?)
+    w = -.5/s2 # constant for exp terms
+    twopi = 3.1415926535*2
+    
+    pts = []
+    for pt in read_points(pc):
+        pts.append(pt)
+    
+    # correspondence variables
+    c = zeros((pc.width*pc.height,J+1))
+    
+    # surface normals
+    a = zeros((J,3)) 
+    
+    # surface offsets
+    b = zeros(J)
+    
+    # initialize
+    for j in range(J):
+        seed = randint(0,pc.width*pc.height-3) 
+        pt0 = array(pts[seed][:3])   
+        seed = randint(0,pc.width*pc.height-3) 
+        pt1 = array(pts[seed][:3])
+        seed = randint(0,pc.width*pc.height-3) 
+        pt2 = array(pts[seed][:3])
+        # now find something perpendicular to pt0, pt1, pt2
+        crossVec = cross(pt1-pt0,pt2-pt0)
+        a[j] = crossVec / sqrt(crossVec[0]**2 + crossVec[1]**2 + crossVec[2]**2)
+        b[j] = dot(a[j],pt0)     
+        m = makeMarker(pt0, a[j], idNum=j, color=colorsRGB[j])
+        pubMarkers.publish(m)
+        
+    print 'init'
+    print 'a', a
+    print 'b', b
+    print
+    
+    for iteration in range(100):
+    
+        # display stuff
+        logLikelihood = 0 
+        for i, pt in enumerate(pts):
+            logLikelihood += log(1.0/((J+1)*sqrt(twopi*s2)))
+            logLikelihood -= 0.5*c[i,J]*log((zmax**2)/(twopi*s2))      
+            for j in range(J):
+                logLikelihood -= 0.5*c[i,j]*((dot(a[j],pt[:3])-b[j])**2)/(s2)
+
+        hasPlanes = []
+        pts2 = []
+        for i, pt in enumerate(pts): 
+            j = c[i].argmax()
+            if j not in hasPlanes and j != J and iteration != 0:  
+                m = makeMarker(pt[:3], a[j], idNum=j, color=colorsRGB[j])
+                pubMarkers.publish(m)
+                hasPlanes.append(j)
+            pts2.append((pt[0],pt[1],pt[2],colors[j]))
+            
+        pc2 = create_cloud(pc.header, pc.fields, pts2)
+        
+        print 'done', logLikelihood
+        pub.publish(pc2)  
+        # end display stuff  
+    
+    
+        #print 'iteration', iteration
+        # E Step: estimate correspondences c[i,j]
+        for i, pt in enumerate(pts):
+            denom = exp(-.5*log((zmax**2)/(twopi*s2)))
+            for k in range(J):
+                denom += exp(w*(dot(a[k],pt[:3])-b[k])**2)
+            for j in range(J):
+                num = exp(w*(dot(a[j],pt[:3])-b[j])**2)
+                c[i,j] = num/denom 
+            num = exp(-.5*log((zmax**2)/(twopi*s2)))
+            c[i,J] = num/denom
+            
+        
+        # M Step: estimate params a, b
+        
+        A = zeros((J,3,3))
+        num1 = zeros((J,3,3))
+        num2 = zeros((J,3,3))
+        denom = zeros((J,3,3))    
+        for j in range(J):
+            for s in range(3):
+                for t in range(3):
+                    for i, z in enumerate(pts):
+                        A[j,s,t] += c[i,j]*z[s]*z[t]
+                        num1[j,s,t] += c[i,j]*z[t]
+                        num2[j,s,t] += c[i,j]*z[s]
+                        denom[j,s,t] += c[i,j]
+        A -= num1*num2/denom
+        
+        for j in range(J):
+            lambdas, eigVecs = eig(A[j])  
+            if abs(lambdas[0]) < abs(lambdas[1]) and abs(lambdas[0]) < abs(lambdas[2]):
+                a[j] = eigVecs[:,0]
+            elif abs(lambdas[1]) < abs(lambdas[0]) and abs(lambdas[1]) < abs(lambdas[2]):
+                a[j] = eigVecs[:,1]
+            else:
+                a[j] = eigVecs[:,2]
+         
+        print 'a'   
+        print a         
+        
+        # get b vector
+        num = zeros(J)
+        denom = zeros(J)
+        for i, pt in enumerate(pts):
+            for j in range(J):
+                #print c[i,j], dot(a[j],pt[:3])
+                num[j] += c[i,j]*dot(a[j],pt[:3])
+                denom[j]+= c[i,j]
+        b = num/denom
+        print 'b'
+        print b
+        
+    
+def makeMarker(pos, vec, idNum=1, color=(1,0,0)):
+    m = Marker()
+    m.id = idNum
+    m.ns = "test"
+    m.header.frame_id = "/openni_rgb_optical_frame"
+    m.type = Marker.ARROW
+    m.action = Marker.ADD
+    
+    markerPt1 = Point()
+    markerPt2 = Point()
+    markerPt1.x = pos[0];
+    markerPt1.y = pos[1];
+    markerPt1.z = pos[2];
+    markerPt2.x = markerPt1.x + vec[0];
+    markerPt2.y = markerPt1.y + vec[1];
+    markerPt2.z = markerPt1.z + vec[2];
+    
+    m.points = [markerPt1, markerPt2]
+    
+    m.scale.x = .1;
+    m.scale.y = .1;
+    m.scale.z = .1;
+    m.color.a = 1;
+    m.color.r = color[0];
+    m.color.g = color[1];
+    m.color.b = color[2];
+    #m.lifetime = rospy.Duration()
+    return m
+
+def listener():
+    rospy.init_node('plane_fit', anonymous=True)
+    pub = rospy.Publisher('plane_fit', PointCloud2)
+    #rospy.init_node('plane_fit_markers', anonymous=True)
+    pubPlanes = rospy.Publisher('plane_fit_markers', Marker)
+    rospy.Subscriber("/stream_voxel", PointCloud2, callback, 
+                     queue_size=1, callback_args=(pub,pubPlanes))    
+    rospy.spin()
+
+if __name__ == '__main__':
+    listener()
