@@ -17,14 +17,12 @@
     * http://createdigitalmusic.com/2011/07/music-with-your-face-artist-kyle-mcdonald-talks-face-tracking-music-making-with-kinect/
     * http://web.mac.com/jsaragih/FaceTracker/FaceTracker.html
     * still waiting on 2nd email back from Jason...
-    * from paper: J. Saragih, S. Lucey and J. Cohn, ``Deformable Model Fitting 
-     by Regularized Landmark Mean-Shifts", International Journal of Computer 
+    * from paper: J. Saragih, S. Lucey and J. Cohn, ``Deformable Model Fitting by Regularized Landmark Mean-Shifts", International Journal of Computer 
      Vision (IJCV)
     * look promising, but might be overkill for our needs
 
 ==viola jones + camshift== 
-    * implemented this for fun, didn't work so well, would shift off my face 
-     and attach to another object
+    * implemented this for fun, didn't work so well, would shift off my face and attach to another object
     * also not 6dof
 
 ==http://www.ros.org/wiki/pi_face_tracker==
