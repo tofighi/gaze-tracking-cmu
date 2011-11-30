@@ -10,3 +10,15 @@ This is our wiki for our CMU Computer Vision 2011 Final Project on head-pose tra
 = Details =
 
 Currently evaluating algorithms.
+
+
+= How to run the current code =
+
+
+* terminal 1: roscore
+
+* terminal 2: roslaunch ros2opencv openni_node.launch 
+
+* terminal 3: roslaunch pi_face_tracker face_tracker_kinect.launch 
+
+* terminal 4: rosrun gaze-tracking-cmu gaze.py 
