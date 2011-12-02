@@ -39,9 +39,9 @@ Psuedocode 1:
 STRATEGY 2: Attentional Cone
 
 Psuedocode 2:
-  = Detect subject location
-  = Estimate cone of attention for each subject, given nose normal
-  = Use ray casting to classify to best direction category
+  #Detect subject location
+  #Estimate cone of attention for each subject, given nose normal
+  #Use ray casting to classify to best direction category
 
 STRATEGY 3: Data-driven Approach
 
