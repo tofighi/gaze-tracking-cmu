@@ -1,0 +1,32 @@
+#summary Head pose geometry
+
+= Introduction =
+
+In the Kinect x is horizontal, y is vertical and z is depth (an optical frame of reference).
+
+Here we outline our approach to estimating gaze-direction labels by interpolating participant locations from our depth data, classifying their vertical tilt, then transforming to their horizontal (x-z) coordinate system to calculate their cone of attention.
+
+
+= Details =
+
+{{{
+Tilt labels:                      
+
+   /\                            Yaw labels:
+    |   UP                   
+    |
+    | -t                                t''
+    |                        ROBOT      |    WINDOW
+    |   MIDDLE                <---------------------->
+    | 
+    | -t'
+    | 
+    |   DOWN
+   \/
+}}}
+
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
