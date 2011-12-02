@@ -1,4 +1,4 @@
-#summary Kick-butt head pose tracking
+#summary OVERVIEW
 
 = Introduction =
 
