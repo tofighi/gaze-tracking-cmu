@@ -13,7 +13,7 @@ We propose three possible strategies for estimating gaze direction, 1) Transform
 
 STRATEGY 1: Angle Thresholds
 
-Estimate t, t' and t'' for each participant:
+Estimate t, t' and t'' where t and t' are constant for all participants and t'' can be calculated given the subject's location:
 
 {{{
 Tilt labels:                      
