@@ -19,7 +19,7 @@ bridge = CvBridge()
 
 
 def callback(topic, *args):
-
+    
     pubFaceCloud, pubFaceNormals = args[0]
 
     global currIm
@@ -33,16 +33,26 @@ def callback(topic, *args):
         x1, y1 = currRoi.x_offset, currRoi.y_offset
         x2, y2 = x1 + currRoi.width, y1 + currRoi.height
 
+        #x1,x2,y1,y2 = 0,640,0,480
+
         u,v = np.mgrid[x1:x2,y1:y2]
-        d = np.asarray(currIm, dtype=np.float32)[y1:y2,x1:x2]
-        #xyz = makeCloud(u, v, d)
-        xyz = makeCloud3(u,v,d)
+        d = np.asarray(currIm)[y1:y2,x1:x2]
+       
+                
+        #cv.ShowImage("test", cv.fromarray(d))
+        '''if currIm:
+            cv.ShowImage("test", currIm[y1:y2,x1:x2])
+            c = cv.WaitKey(7) % 0x100'''
+        
+        xyz = makeCloud3(range(x1,x2),range(y1,y2),currIm)
+        #xyz = makeCloudwtf(currIm)
 
         pc = PointCloud2()
         pc.header.frame_id = "/openni_depth_optical_frame"
         pc.header.stamp = rospy.Time()
         pc = create_cloud_xyz32(pc.header, xyz)
         pubFaceCloud.publish(pc)
+
         
         #n = len(xyz)
         #mu = np.sum(xyz, axis=0)/n
@@ -51,23 +61,50 @@ def callback(topic, *args):
         #e, v = eig(cov)
         
         #print v[2]
-        
-def makeCloud3(u,v,d): # for raw values...
+  
+def makeCloudwtf(raw):
+    raw = np.asarray(raw)
     xyz = []
-    
-    d = d.flatten() 
-    #d = 100/(-0.00307*d + 3.33)
-    
-    
-    C = np.vstack((u.flatten(), v.flatten(), d))  
     minDistance = -10
     scaleFactor = 0.0021
-    for i in range(C.shape[1]):
-        x, y, z = C[0,i], C[1,i], C[2,i]
-        xp = (x - 480 / 2) * (z + minDistance) * scaleFactor
-        yp = (640 / 2 - y) * (z + minDistance) * scaleFactor
-        xyz.append((xp,yp,z))
-    return xyz        
+    # Compute depth (unit in cm) from raw 11-bit disparity value
+    # According to ROS site
+    depth = raw*100.0
+    #print depth[40:45,40:45]
+    #depth = 100.0/(-0.00307*raw + 3.33)
+    
+    print depth.dtype
+
+    # Convert from pixel ref (i, j, z) to 3D space (x,y,z)
+    for i in range(0,480,5):
+        for j in range(0,640,5):
+            z = depth[i][j]
+            x = (i - 480 / 2) * (z + minDistance) * scaleFactor
+            y = (640 / 2 - j) * (z + minDistance) * scaleFactor    
+            xyz.append((-y/100.,x/100.,z/100.))
+    return xyz
+        
+def makeCloud3(u,v,raw): # for raw values...
+    raw = np.asarray(raw)
+    xyz = []
+    minDistance = -10
+    scaleFactor = 0.0021
+    # Compute depth (unit in cm) from raw 11-bit disparity value
+    # According to ROS site
+    depth = raw*100.0
+    #print depth[40:45,40:45]
+    #depth = 100.0/(-0.00307*raw + 3.33)
+    
+    print depth.dtype
+
+    # Convert from pixel ref (i, j, z) to 3D space (x,y,z)
+    for i in v:
+        for j in u:
+            z = depth[i][j]
+            x = (i - 480 / 2) * (z + minDistance) * scaleFactor
+            y = (640 / 2 - j) * (z + minDistance) * scaleFactor    
+            xyz.append((-y/100.,x/100.,z/100.))
+    return xyz      
         
 def makeCloud2(u,v,d): # for depth values, from pi_vision
     xyz = []
@@ -89,8 +126,10 @@ def makeCloud(u, v, d): # from? I think I have the code downloaded somewhere...
     X,Y,Z,W = np.dot(xyz_matrix(),C)  
     X,Y,Z = X/W, Y/W, Z/W  
     xyz = np.vstack((X,Y,Z)).transpose()  
-    xyz = xyz[Z<0,:]
-    return xyz       
+    #xyz = xyz[Z<0,:]
+    print xyz[1:5,:]
+    print d.shape
+    return xyz      
         
 def xyz_matrix():  
     fx = 594.21  
@@ -139,7 +178,7 @@ def convert_depth_image(ros_image):
     try:
         global bridge
 
-        depth_image = bridge.imgmsg_to_cv(ros_image, "32FC1") #32fc1
+        depth_image = bridge.imgmsg_to_cv(ros_image, "32FC1") #32FC1
         #numpy.clip(depth_image, 0, 2**10-1, depth_image) # .003
         #depth_image >>= 2 # .003 
         #depth_image = depth_image.astype(numpy.uint8)
@@ -150,6 +189,9 @@ def convert_depth_image(ros_image):
         print e
 
 def listener():
+
+    #cv.NamedWindow("test", 0)
+
     rospy.init_node('gaze-tracking-cmu', anonymous=True)
     
     pubFaceCloud = rospy.Publisher('gaze_cloud', PointCloud2)
