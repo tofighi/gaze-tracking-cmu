@@ -1,0 +1,15 @@
+<launch>
+  <node pkg="gaze-tracking-cmu" name="face_tracker_kinect" type="gaze.py" output="screen">
+    <remap from="input_rgb_image" to="/camera/rgb/image_color" />
+    <remap from="input_depth_image" to="/camera/depth/image_raw" />
+        
+    <rosparam>
+      show_text: True
+    </rosparam>
+    
+  	<param name="cascade_frontal_alt" value="$(find gaze-tracking-cmu)/params/haarcascade_frontalface_alt.xml" />
+   	<param name="cascade_frontal_alt2" value="$(find gaze-tracking-cmu)/params/haarcascade_frontalface_alt2.xml" />
+  	<param name="cascade_profile" value="$(find gaze-tracking-cmu)/params/haarcascade_profileface.xml" />
+
+  </node>
+</launch>
