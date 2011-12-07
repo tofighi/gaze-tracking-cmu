@@ -5,7 +5,7 @@
 
 the step size of the uint16 image is wrong. It is half of what it should be (640 instead of 1280). Setting it manually keeps the program running. 
 
-However, the flag value for bad return is 1023 (2**10 - 1) instead of 2047 (2**11 -1). It seems to me that this might also have something to do with the bad step size. 
+However, the flag value for bad return is 1023 (2^10^ - 1) instead of 2047 (2^11^ -1). It seems to me that this might also have something to do with the bad step size. 
 
 The output looks correct, but it seems like the depth, if missing a bit, could be twice as accurate. 
 
