@@ -31,9 +31,7 @@ class Gaze:
         self.depth_image = None
         self.grey = None
         self.small_image = None
-        
         self.prev = None
-        
         self.show_text = True
 
         """ Create the display window """
@@ -42,7 +40,10 @@ class Gaze:
         cv.ResizeWindow(self.cv_window_name, 640, 480)
         
         """ Create the cv_bridge object """
-        self.bridge = CvBridge()     
+        self.bridge = CvBridge()   
+        
+        """ Set a call back on mouse clicks on the image window """
+        cv.SetMouseCallback (self.node_name, self.on_mouse_click, None)  
         
         """ Subscribe to the raw camera image topic and set the image processing callback """
         self.image_sub = rospy.Subscriber(self.input_rgb_image, Image, self.image_callback)
@@ -63,6 +64,9 @@ class Gaze:
         self.cascade_profile = cv.Load(self.cascade_profile)
         
         self.camera_frame_id = "kinect_depth_optical_frame"
+        
+        self.drag_start = None
+        self.selections = []
         
         # viola jones parameters
         self.min_size = (20, 20)
@@ -124,8 +128,6 @@ class Gaze:
                 bounding box of each face and convert it to two CvPoints """
             pt1 = (int(x * self.image_scale), int(y * self.image_scale))
             pt2 = (int((x + w) * self.image_scale), int((y + h) * self.image_scale))
-            #face_width = pt2[0] - pt1[0]
-            #face_height = pt2[1] - pt1[1]
                 
             face_box = (pt1[0], pt1[1], pt2[0], pt2[1])
             faces_boxes.append(face_box)
@@ -144,12 +146,8 @@ class Gaze:
         boxNum = 1
         prevV = None
         for (x1,y1,x2,y2) in boxes:
-            #x1,x2,y1,y2 = 0,640,0,480
-            
             for xpad, ypad, ypad2 in zip([10,10],[40,40],[40,0]):
-                #xpad = 10
-                #ypad = 40
-                #ypad2 = 40
+
                 if ypad2 == 0:
                     colorFlag = 2
                 else:
@@ -165,7 +163,7 @@ class Gaze:
                 v = v[np.isfinite(d)]
                 d = d[np.isfinite(d)]
                 
-                ### only if from dat
+                ### only if from dat, bad value should actually be 2047
                 u = u[d!=1023]
                 v = v[d!=1023]
                 d = d[d!=1023]
@@ -181,7 +179,6 @@ class Gaze:
                 xyz = xyz[xyz[:,2] < alpha*median,:]'''
                 
                 xyz_all.extend(xyz)
-                
                 
                 n = len(xyz)
                 mu = np.sum(xyz, axis=0)/n
@@ -203,7 +200,8 @@ class Gaze:
                 idNum += 1
                 self.pubFaceNormals.publish(m)
             boxNum += 1
-            
+          
+        # getting rid of bad markers in rviz by sending them away  
         for blah in range(idNum,25):
             m = self.makeMarker([-10,-10,-10], [1,1,1], idNum=idNum, color=(1,1,1))
             idNum += 1
@@ -214,6 +212,52 @@ class Gaze:
         pc.header.stamp = rospy.Time()
         pc = create_cloud_xyz32(pc.header, xyz_all)
         self.pubFaceCloud.publish(pc)
+        
+    def display_markers(self):
+        # If the user is selecting a region with the mouse, display the corresponding rectangle for feedback.
+        if self.drag_start and self.is_rect_nonzero(self.selection):
+            x,y,w,h = self.selection
+            cv.Rectangle(self.display_image, (x, y), (x + w, y + h), (0, 255, 255), 2)
+            self.selected_point = None
+        
+    def is_rect_nonzero(self, r):
+        # First assume a simple CvRect type
+        try:
+            (_,_,w,h) = r
+            return (w > 0) and (h > 0)
+        except:
+            # Otherwise, assume a CvBox2D type
+            ((_,_),(w,h),a) = r
+            return (w > 0) and (h > 0)         
+        
+        
+    def on_mouse_click(self, event, x, y, flags, param):
+        """ We will usually use the mouse to select points to track or to draw a rectangle
+            around a region of interest. """
+        if not self.image:
+            return
+        
+        if self.image.origin:
+            y = self.image.height - y
+            
+        if event == cv.CV_EVENT_LBUTTONDOWN and not self.drag_start:
+            self.detect_box = None
+            self.selected_point = (x, y)
+            self.drag_start = (x, y)
+            
+        if event == cv.CV_EVENT_LBUTTONUP:
+            self.drag_start = None
+            x, y, w, h = self.selection
+            if w > 0 and h > 0:
+                x1, y1, x2, y2 = x, y, x+w, y+h   
+                self.selections.append((x1, y1, x2, y2))
+            
+        if self.drag_start:
+            xmin = max(0, min(x, self.drag_start[0]))
+            ymin = max(0, min(y, self.drag_start[1]))
+            xmax = min(self.image.width, max(x, self.drag_start[0]))
+            ymax = min(self.image.height, max(y, self.drag_start[1]))
+            self.selection = (xmin, ymin, xmax - xmin, ymax - ymin)
             
     def depth_callback(self, data):
         depth_image = self.convert_depth_image(data)
@@ -223,19 +267,12 @@ class Gaze:
             self.depth_image = cv.CreateMat(rows, cols, cv.CV_16UC1) # cv.CV_32FC1
             
         cv.Copy(depth_image, self.depth_image)
-        
-        #self.depth_image = depth_image
 
     def image_callback(self, data):       
         start = time.time()
     
         """ Convert the raw image to OpenCV format using the convert_image() helper function """
         cv_image = self.convert_image(data)
-        
-        if np.all(np.asarray(cv_image) == self.prev):
-            return
-        else:
-            self.prev = np.asarray(cv_image)
           
         """ Create a few images we will use for display """
         if not self.image:
@@ -247,10 +284,14 @@ class Gaze:
         cv.Copy(cv_image, self.image)
         cv.Copy(cv_image, self.display_image)
         
-        """ Process the image to detect and track objects or features """
         #faces = self.detect_faces(cv_image)
-        faces = ((148,140,216,224),(424,166,500,238),(276,150,350,234))
-        self.process_faces(faces)
+        faces = self.selections #((148,140,216,224),(424,166,500,238),(276,150,350,234))
+        
+        """ Process the image to detect and track objects or features """
+        if np.all(np.asarray(cv_image) == self.prev): pass
+        else:
+            self.prev = np.asarray(cv_image)
+            self.process_faces(faces)
             
         for (x,y,x2,y2) in faces:
             cv.Rectangle(self.display_image, (x, y), (x2, y2), cv.RGB(255, 0, 0), 2, 8, 0)
@@ -271,6 +312,8 @@ class Gaze:
             """ Print cycles per second (CPS) and resolution (RES) at top of the image """
             cv.PutText(self.display_image, "CPS: " + str(self.cps), (10, int(self.image_size[1] * 0.1)), text_font, cv.RGB(255, 255, 0))
             cv.PutText(self.display_image, "RES: " + str(self.image_size[0]) + "X" + str(self.image_size[1]), (int(self.image_size[0] * 0.6), int(self.image_size[1] * 0.1)), text_font, cv.RGB(255, 255, 0))
+            
+        self.display_markers()
 
         # Now display the image.
         cv.ShowImage(self.node_name, self.display_image)
