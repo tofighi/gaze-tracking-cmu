@@ -11,6 +11,7 @@ import cv
 from cv_bridge import CvBridge, CvBridgeError
 import time
 import sys
+from lk import lk
 
 class Gaze:
     def __init__(self, node_name):
@@ -146,6 +147,7 @@ class Gaze:
         boxNum = 1
         prevV = None
         for (x1,y1,x2,y2) in boxes:
+            x1, y1, x2, y2 = cv.Round(x1), cv.Round(y1), cv.Round(x2), cv.Round(y2)
             for xpad, ypad, ypad2 in zip([10,10],[40,40],[40,0]):
 
                 if ypad2 == 0:
@@ -290,11 +292,24 @@ class Gaze:
         """ Process the image to detect and track objects or features """
         if np.all(np.asarray(cv_image) == self.prev): pass
         else:
-            self.prev = np.asarray(cv_image)
+            tracked_faces = []
+            curr = np.asarray(cv_image)
+            for facebox in faces:
+                u, v = lk(curr[:,:,1],self.prev[:,:,1],facebox)
+                tracked_faces.append((facebox[0]+u,
+                                      facebox[1]+v,
+                                      facebox[2]+u,
+                                      facebox[3]+v))
+                
+            faces = tracked_faces
+            self.selections = faces
+            self.prev = curr
             self.process_faces(faces)
             
         for (x,y,x2,y2) in faces:
-            cv.Rectangle(self.display_image, (x, y), (x2, y2), cv.RGB(255, 0, 0), 2, 8, 0)
+            cv.Rectangle(self.display_image, (cv.Round(x), cv.Round(y)),
+                                             (cv.Round(x2), cv.Round(y2)), 
+                                             cv.RGB(255, 0, 0), 2, 8, 0)
         
         """ Handle keyboard events """
         self.keystroke = cv.WaitKey(5)
