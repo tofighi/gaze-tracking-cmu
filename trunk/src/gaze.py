@@ -32,6 +32,8 @@ class Gaze:
         self.grey = None
         self.small_image = None
         
+        self.prev = None
+        
         self.show_text = True
 
         """ Create the display window """
@@ -129,63 +131,81 @@ class Gaze:
             faces_boxes.append(face_box)
         return faces_boxes
 
-
     def process_faces(self, boxes):     
         if not self.depth_image: 
             print 'whoops! no depth image!'
             return
           
-        skip = 1     
+        skip = 1
         xyz_all = []
         
         idNum = 1
+        #f = open("output.dat","w")
+        boxNum = 1
+        prevV = None
         for (x1,y1,x2,y2) in boxes:
             #x1,x2,y1,y2 = 0,640,0,480
-            xpad = 10
-            ypad = 40
-            ypad2 = -10
+            
+            for xpad, ypad, ypad2 in zip([10,10],[40,40],[40,0]):
+                #xpad = 10
+                #ypad = 40
+                #ypad2 = 40
+                if ypad2 == 0:
+                    colorFlag = 2
+                else:
+                    colorFlag = 1
 
-            u,v = np.mgrid[y1-ypad:y2:skip,x1-xpad:x2+xpad:skip]
-            u,v = u.flatten(), v.flatten()
-            d = np.asarray(self.depth_image[y1-ypad:y2+ypad2,x1-xpad:x2+xpad])
-            d = d[::skip,::skip]
-            d = d.flatten()
+                u,v = np.mgrid[y1-ypad:y2+ypad2:skip,x1-xpad:x2+xpad:skip]
+                u,v = u.flatten(), v.flatten()
+                d = np.asarray(self.depth_image[y1-ypad:y2+ypad2,x1-xpad:x2+xpad])
+                d = d[::skip,::skip]
+                d = d.flatten()
+                
+                u = u[np.isfinite(d)]
+                v = v[np.isfinite(d)]
+                d = d[np.isfinite(d)]
+                
+                ### only if from dat
+                u = u[d!=1023]
+                v = v[d!=1023]
+                d = d[d!=1023]
+                
+                #u = u[d < alpha*median]
+                #v = v[d < alpha*median] 
+                #d = d[d < alpha*median]
+                
+                xyz = self.makeCloud_correct(u,v,d)
+                
+                '''median = sorted(xyz[:,2])[len(d)//2]
+                alpha = 1.2
+                xyz = xyz[xyz[:,2] < alpha*median,:]'''
+                
+                xyz_all.extend(xyz)
+                
+                
+                n = len(xyz)
+                mu = np.sum(xyz, axis=0)/n
+                xyz_norm = xyz - mu
+                cov = np.dot(xyz_norm.T, xyz_norm)/n
+                e, v = eig(cov)
+                
+                #print v[2]
+                
+                if v[2][2] > 0: v[2] = -v[2]
+                
+                # publish marker here
+                if colorFlag == 1:
+                    m = self.makeMarker(mu, v[2], idNum=idNum, color=(1,0,0))
+                    print '%d %f %f %f' % (boxNum, v[2][0], v[2][1], v[2][2]),
+                else:
+                    m = self.makeMarker(mu, v[2], idNum=idNum, color=(0,1,0))
+                    print '%f %f %f ' % (v[2][0], v[2][1], v[2][2])
+                idNum += 1
+                self.pubFaceNormals.publish(m)
+            boxNum += 1
             
-            u = u[np.isfinite(d)]
-            v = v[np.isfinite(d)]
-            d = d[np.isfinite(d)]
-            
-            ### only if from dat
-            u = u[d!=1023]
-            v = v[d!=1023]
-            d = d[d!=1023]
-            
-            
-            #u = u[d < alpha*median]
-            #v = v[d < alpha*median] 
-            #d = d[d < alpha*median]
-            
-            xyz = self.makeCloud_correct(u,v,d)
-            
-            '''median = sorted(xyz[:,2])[len(d)//2]
-            alpha = 1.2
-            xyz = xyz[xyz[:,2] < alpha*median,:]'''
-            
-            xyz_all.extend(xyz)
-            
-            
-            n = len(xyz)
-            mu = np.sum(xyz, axis=0)/n
-            xyz_norm = xyz - mu
-            cov = np.dot(xyz_norm.T, xyz_norm)/n
-            e, v = eig(cov)
-            
-            #print v[2]
-            
-            if v[2][2] > 0: v[2] = -v[2]
-            
-            # publish marker here
-            m = self.makeMarker(mu, v[2], idNum=idNum, color=(1,0,0))
+        for blah in range(idNum,25):
+            m = self.makeMarker([-10,-10,-10], [1,1,1], idNum=idNum, color=(1,1,1))
             idNum += 1
             self.pubFaceNormals.publish(m)
 
@@ -211,6 +231,11 @@ class Gaze:
     
         """ Convert the raw image to OpenCV format using the convert_image() helper function """
         cv_image = self.convert_image(data)
+        
+        if np.all(np.asarray(cv_image) == self.prev):
+            return
+        else:
+            self.prev = np.asarray(cv_image)
           
         """ Create a few images we will use for display """
         if not self.image:
@@ -223,8 +248,8 @@ class Gaze:
         cv.Copy(cv_image, self.display_image)
         
         """ Process the image to detect and track objects or features """
-        faces = self.detect_faces(cv_image)
-        #faces = ((0,0,640,480),)
+        #faces = self.detect_faces(cv_image)
+        faces = ((148,140,216,224),(424,166,500,238),(276,150,350,234))
         self.process_faces(faces)
             
         for (x,y,x2,y2) in faces:
