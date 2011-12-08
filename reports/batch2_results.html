@@ -1,0 +1,238 @@
+<html>
+<head>
+	<title>Orange viewer</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<style>
+html, body, table {
+	font:normal 10px verdana;
+	margin:0px;
+	padding:0;
+	border:0 none;	
+}
+p {
+	margin:5px;
+}
+
+h1, h2 , h3, h4, h5 {
+   font-family: verdana;
+   width: 100%;
+   padding: 1px;
+   margin: 2px;
+   font-size:100%;
+}
+
+h1 {
+   color: white;
+   background-color: black;
+   padding-left: 2px;
+   margin-top: 12px;
+}
+
+h2 {
+   background-color: #fdffd5;
+   border-bottom: 1px solid black;
+   padding-left: 2px;
+}
+
+ul {
+   margin-left: 10px;
+}
+
+div.insideh1 {
+   padding-left: 4px;
+}
+
+.settings {
+	background-image:url(ext-2.0-rc1/examples/shared/icons/fam/folder_wrench.png);
+}
+.nav {
+	background-image:url(ext-2.0-rc1/examples/shared/icons/fam/folder_go.png);
+}
+
+span.timestamp {
+    position: absolute;
+	right: 40px;
+	color:#dddddd;
+}
+
+div.selected {
+	border: 1px solid black;
+	padding: 3px;
+	/* background-color: #FDFFA5; */
+	margin: 4px;
+}
+
+div.normal {
+	border: 0px;
+	padding: 3px;
+	/* background-color: #FDFFD5;*/
+	margin: 5px;
+}
+
+</style>
+
+<body><table width="100%"><tr><td valign="top"><p style="padding-top:25px;">Index</p><a href="#N015">TestLearners</a><br/><a href="#N016">Confusion Matrix</a><br/><a href="#N017">Confusion Matrix</a><br/><a href="#N018">Confusion Matrix</a><br/><a href="#N019">ROC Analysis</a><br/><a href="#N020">ROC Analysis</a><br/><a href="#N021">ROC Analysis</a><br/><a href="#N022">ROC Analysis</a></td><td>
+        <div id="N015" onClick="myself.changeItem(this.id);">
+            <a name="N015" />
+            <h1>TestLearners<span class="timestamp">Wed Dec 07 11, 21:39:12</span></h1>
+            <div class="insideh1">
+                
+
+<h2>Validation method</h2>
+
+    <ul><b>Method: </b>Cross-validation<br/><b>Folds: </b>10<br/><b>Target class: </b>eachother<br/></ul>
+
+
+<h2>Data</h2>
+
+    <ul><b>Examples: </b>175<br/><b>Attributes: </b>6 (nx, ny, nz, n2x, n2y, n2z)<br/><b>Class: </b>class_view<br/></ul>
+
+
+<h2>Results</h2>
+
+<table><tr><th></th><th><b>CA</b></th><th><b>AUC</b></th></tr><tr><th><b>SVM</b></th><td>0.7961</td><td>0.8146</td></tr><tr><th><b>Naive Bayes</b></th><td>0.5902</td><td>0.6589</td></tr><tr><th><b>Random Forest</b></th><td>0.7101</td><td>0.7804</td></tr></table>
+            </div>
+        </div>
+        
+
+        <div id="N016" onClick="myself.changeItem(this.id);">
+            <a name="N016" />
+            <h1>Confusion Matrix<span class="timestamp">Wed Dec 07 11, 21:39:20</span></h1>
+            <div class="insideh1">
+                
+
+<h2>Contents</h2>
+
+    <ul><b>Learner: </b>Naive Bayes<br/><b>Data: </b>Number of examples<br/></ul>
+
+
+<h2>Matrix</h2>
+
+<table>
+<tr><td></td><td align="center"><b>&nbsp;&nbsp;eachother&nbsp;&nbsp;</b></td><td align="center"><b>&nbsp;&nbsp;robot&nbsp;&nbsp;</b></td><td align="center"><b>&nbsp;&nbsp;vent&nbsp;&nbsp;</b></td><td align="center"><b>&nbsp;&nbsp;window&nbsp;&nbsp;</b></td></tr>
+<tr><th align="right"><b>eachother</b></th><td align="center"> 0 </td><td align="center"> 4 </td><td align="center"> 1 </td><td align="center"> 0 </td><th align="right"><b> 5 </b></th></tr>
+<tr><th align="right"><b>robot</b></th><td align="center"> 5 </td><td align="center"> 68 </td><td align="center"> 26 </td><td align="center"> 4 </td><th align="right"><b> 103 </b></th></tr>
+<tr><th align="right"><b>vent</b></th><td align="center"> 0 </td><td align="center"> 24 </td><td align="center"> 35 </td><td align="center"> 3 </td><th align="right"><b> 62 </b></th></tr>
+<tr><th align="right"><b>window</b></th><td align="center"> 0 </td><td align="center"> 2 </td><td align="center"> 3 </td><td align="center"> 0 </td><th align="right"><b> 5 </b></th></tr>
+<tr><th></th><td align="center"><b> 5 </b></td><td align="center"><b> 98 </b></td><td align="center"><b> 65 </b></td><td align="center"><b> 7 </b></td><td align="center"><b> 175 </b></td></tr>
+</table>
+<p><b>Note:</b> columns represent predictions, row represent true classes</p>
+            </div>
+        </div>
+        
+
+        <div id="N017" onClick="myself.changeItem(this.id);">
+            <a name="N017" />
+            <h1>Confusion Matrix<span class="timestamp">Wed Dec 07 11, 21:39:23</span></h1>
+            <div class="insideh1">
+                
+
+<h2>Contents</h2>
+
+    <ul><b>Learner: </b>Random Forest<br/><b>Data: </b>Number of examples<br/></ul>
+
+
+<h2>Matrix</h2>
+
+<table>
+<tr><td></td><td align="center"><b>&nbsp;&nbsp;eachother&nbsp;&nbsp;</b></td><td align="center"><b>&nbsp;&nbsp;robot&nbsp;&nbsp;</b></td><td align="center"><b>&nbsp;&nbsp;vent&nbsp;&nbsp;</b></td><td align="center"><b>&nbsp;&nbsp;window&nbsp;&nbsp;</b></td></tr>
+<tr><th align="right"><b>eachother</b></th><td align="center"> 0 </td><td align="center"> 5 </td><td align="center"> 0 </td><td align="center"> 0 </td><th align="right"><b> 5 </b></th></tr>
+<tr><th align="right"><b>robot</b></th><td align="center"> 4 </td><td align="center"> 81 </td><td align="center"> 17 </td><td align="center"> 1 </td><th align="right"><b> 103 </b></th></tr>
+<tr><th align="right"><b>vent</b></th><td align="center"> 0 </td><td align="center"> 18 </td><td align="center"> 43 </td><td align="center"> 1 </td><th align="right"><b> 62 </b></th></tr>
+<tr><th align="right"><b>window</b></th><td align="center"> 0 </td><td align="center"> 3 </td><td align="center"> 2 </td><td align="center"> 0 </td><th align="right"><b> 5 </b></th></tr>
+<tr><th></th><td align="center"><b> 4 </b></td><td align="center"><b> 107 </b></td><td align="center"><b> 62 </b></td><td align="center"><b> 2 </b></td><td align="center"><b> 175 </b></td></tr>
+</table>
+<p><b>Note:</b> columns represent predictions, row represent true classes</p>
+            </div>
+        </div>
+        
+
+        <div id="N018" onClick="myself.changeItem(this.id);">
+            <a name="N018" />
+            <h1>Confusion Matrix<span class="timestamp">Wed Dec 07 11, 21:39:25</span></h1>
+            <div class="insideh1">
+                
+
+<h2>Contents</h2>
+
+    <ul><b>Learner: </b>SVM<br/><b>Data: </b>Number of examples<br/></ul>
+
+
+<h2>Matrix</h2>
+
+<table>
+<tr><td></td><td align="center"><b>&nbsp;&nbsp;eachother&nbsp;&nbsp;</b></td><td align="center"><b>&nbsp;&nbsp;robot&nbsp;&nbsp;</b></td><td align="center"><b>&nbsp;&nbsp;vent&nbsp;&nbsp;</b></td><td align="center"><b>&nbsp;&nbsp;window&nbsp;&nbsp;</b></td></tr>
+<tr><th align="right"><b>eachother</b></th><td align="center"> 0 </td><td align="center"> 5 </td><td align="center"> 0 </td><td align="center"> 0 </td><th align="right"><b> 5 </b></th></tr>
+<tr><th align="right"><b>robot</b></th><td align="center"> 0 </td><td align="center"> 90 </td><td align="center"> 13 </td><td align="center"> 0 </td><th align="right"><b> 103 </b></th></tr>
+<tr><th align="right"><b>vent</b></th><td align="center"> 0 </td><td align="center"> 13 </td><td align="center"> 49 </td><td align="center"> 0 </td><th align="right"><b> 62 </b></th></tr>
+<tr><th align="right"><b>window</b></th><td align="center"> 0 </td><td align="center"> 2 </td><td align="center"> 3 </td><td align="center"> 0 </td><th align="right"><b> 5 </b></th></tr>
+<tr><th></th><td align="center"><b> 0 </b></td><td align="center"><b> 110 </b></td><td align="center"><b> 65 </b></td><td align="center"><b> 0 </b></td><td align="center"><b> 175 </b></td></tr>
+</table>
+<p><b>Note:</b> columns represent predictions, row represent true classes</p>
+            </div>
+        </div>
+        
+
+        <div id="N019" onClick="myself.changeItem(this.id);">
+            <a name="N019" />
+            <h1>ROC Analysis<span class="timestamp">Wed Dec 07 11, 21:39:45</span></h1>
+            <div class="insideh1">
+                
+
+<h2>Settings</h2>
+
+    <ul><b>Classifiers: </b><font color="#ff0000">Naive Bayes</font>, <font color="#00ff1d">Random Forest</font>, <font color="#4000ff">SVM</font><br/><b>Target class: </b>robot<br/><b>Costs: </b>FP=500, FN=500<br/><b>Prior target class probability: </b>58%<br/></ul>
+<br/>    <IMG src="batch2_results/img000007.png"/>
+
+            </div>
+        </div>
+        
+
+        <div id="N020" onClick="myself.changeItem(this.id);">
+            <a name="N020" />
+            <h1>ROC Analysis<span class="timestamp">Wed Dec 07 11, 21:39:49</span></h1>
+            <div class="insideh1">
+                
+
+<h2>Settings</h2>
+
+    <ul><b>Classifiers: </b><font color="#ff0000">Naive Bayes</font>, <font color="#00ff1d">Random Forest</font>, <font color="#4000ff">SVM</font><br/><b>Target class: </b>vent<br/><b>Costs: </b>FP=500, FN=500<br/><b>Prior target class probability: </b>35%<br/></ul>
+<br/>    <IMG src="batch2_results/img000008.png"/>
+
+            </div>
+        </div>
+        
+
+        <div id="N021" onClick="myself.changeItem(this.id);">
+            <a name="N021" />
+            <h1>ROC Analysis<span class="timestamp">Wed Dec 07 11, 21:39:53</span></h1>
+            <div class="insideh1">
+                
+
+<h2>Settings</h2>
+
+    <ul><b>Classifiers: </b><font color="#ff0000">Naive Bayes</font>, <font color="#00ff1d">Random Forest</font>, <font color="#4000ff">SVM</font><br/><b>Target class: </b>window<br/><b>Costs: </b>FP=500, FN=500<br/><b>Prior target class probability: </b>3%<br/></ul>
+<br/>    <IMG src="batch2_results/img000009.png"/>
+
+            </div>
+        </div>
+        
+
+        <div id="N022" onClick="myself.changeItem(this.id);">
+            <a name="N022" />
+            <h1>ROC Analysis<span class="timestamp">Wed Dec 07 11, 21:39:57</span></h1>
+            <div class="insideh1">
+                
+
+<h2>Settings</h2>
+
+    <ul><b>Classifiers: </b><font color="#ff0000">Naive Bayes</font>, <font color="#00ff1d">Random Forest</font>, <font color="#4000ff">SVM</font><br/><b>Target class: </b>eachother<br/><b>Costs: </b>FP=500, FN=500<br/><b>Prior target class probability: </b>4%<br/></ul>
+<br/>    <IMG src="batch2_results/img000010.png"/>
+
+            </div>
+        </div>
+        </td></tr></table>
+
+ </body>
+</html>
