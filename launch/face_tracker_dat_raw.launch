@@ -1,7 +1,18 @@
 <launch>  
+
+  <!--<node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager"/>
+  
+  <node pkg="nodelet" type="nodelet" name="convert_metric"
+        args="load depth_image_proc/convert_metric standalone_nodelet">
+    <remap from="image_mono" to="/dat2ros/depth/image_raw"/>
+    <remap from="camera_info" to="/dat2ros/depth/camera_info"/>
+    <remap from="image" to="/dat2ros/depth/image"/>
+  </node>-->
+ 
+
   <node pkg="gaze-tracking-cmu" name="face_tracker_kinect" type="gaze.py" output="screen">
     <remap from="input_rgb_image" to="/dat2ros/rgb/image" />
-    <remap from="input_depth_image" to="/dat2ros/depth/image_raw" />
+    <remap from="input_depth_image" to="/dat2ros/depth_registered/image_rect" />
         
     <rosparam>
       show_text: True

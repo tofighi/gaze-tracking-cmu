@@ -33,7 +33,10 @@ class Gaze:
         self.grey = None
         self.small_image = None
         self.prev = None
+        self.prev_img = None
         self.show_text = True
+        
+        self.mask = None
 
         """ Create the display window """
         self.cv_window_name = self.node_name
@@ -166,9 +169,9 @@ class Gaze:
                 d = d[np.isfinite(d)]
                 
                 ### only if from dat, bad value should actually be 2047
-                u = u[d!=1023]
-                v = v[d!=1023]
-                d = d[d!=1023]
+                u = u[d!=0]
+                v = v[d!=0]
+                d = d[d!=0]
                 
                 #u = u[d < alpha*median]
                 #v = v[d < alpha*median] 
@@ -282,29 +285,37 @@ class Gaze:
             self.image = cv.CreateImage(self.image_size, 8, 3)
             self.display_image = cv.CreateImage(self.image_size, 8, 3)
 
+
         """ Copy the current frame to the global image in case we need it elsewhere"""
         cv.Copy(cv_image, self.image)
-        cv.Copy(cv_image, self.display_image)
+        #cv.Copy(cv_image, self.display_image)
         
         #faces = self.detect_faces(cv_image)
         faces = self.selections #((148,140,216,224),(424,166,500,238),(276,150,350,234))
         
         """ Process the image to detect and track objects or features """
-        if np.all(np.asarray(cv_image) == self.prev): pass
+        if np.all(np.asarray(cv_image) == self.prev_img): pass
         else:
             tracked_faces = []
-            curr = np.asarray(cv_image)
-            for facebox in faces:
-                u, v = lk(curr[:,:,1],self.prev[:,:,1],facebox)
+            curr = np.asarray(self.depth_image)
+            '''for facebox in faces:
+                u, v = lk(curr,self.prev,facebox)
                 tracked_faces.append((facebox[0]+u,
                                       facebox[1]+v,
                                       facebox[2]+u,
                                       facebox[3]+v))
                 
             faces = tracked_faces
-            self.selections = faces
+            self.selections = faces'''
             self.prev = curr
+            self.prev_img = np.asarray(cv_image)
             self.process_faces(faces)
+
+        self.mask = cv.CreateImage(self.image_size, 8, 1)  
+        self.display_image = cv.CreateImage(self.image_size, 8, 3) 
+        cv.Set(self.display_image,0)         
+        cv.CmpS(self.depth_image, 0, self.mask, cv.CV_CMP_NE)
+        cv.Copy(cv_image, self.display_image, mask=self.mask)
             
         for (x,y,x2,y2) in faces:
             cv.Rectangle(self.display_image, (cv.Round(x), cv.Round(y)),
@@ -325,7 +336,7 @@ class Gaze:
         if self.show_text:
             text_font = cv.InitFont(cv.CV_FONT_VECTOR0, 1, 1, 0, 2, 8)
             """ Print cycles per second (CPS) and resolution (RES) at top of the image """
-            cv.PutText(self.display_image, "CPS: " + str(self.cps), (10, int(self.image_size[1] * 0.1)), text_font, cv.RGB(255, 255, 0))
+            cv.PutText(self.display_image, "FPS: " + str(self.cps), (10, int(self.image_size[1] * 0.1)), text_font, cv.RGB(255, 255, 0))
             cv.PutText(self.display_image, "RES: " + str(self.image_size[0]) + "X" + str(self.image_size[1]), (int(self.image_size[0] * 0.6), int(self.image_size[1] * 0.1)), text_font, cv.RGB(255, 255, 0))
             
         self.display_markers()
@@ -352,7 +363,7 @@ class Gaze:
     def convert_depth_image(self, ros_image):
         try:
             
-            ros_image.step = 1280 # weird bug here -- only needed for dat?
+            #ros_image.step = 1280 # weird bug here -- only needed for dat?
             depth_image = self.bridge.imgmsg_to_cv(ros_image, "16UC1") #"32FC1"
             
             return depth_image
@@ -362,7 +373,7 @@ class Gaze:
  
     def makeCloud_correct(self, u, v, d): # for depth values, from pi_vision
         # only if from dat
-        d = 1000.0 * .1236 * np.tan((d / 2842.5) + 1.1863) - 0.0370
+        #d = 1000.0 * .1236 * np.tan((d / 2842.5) + 1.1863) - 0.0370
         
         const = .001/575.8157348632812
         

@@ -1,7 +1,7 @@
 <launch>
   <node pkg="gaze-tracking-cmu" name="face_tracker_kinect" type="gaze.py" output="screen">
     <remap from="input_rgb_image" to="/camera/rgb/image_color" />
-    <remap from="input_depth_image" to="/camera/depth/image_raw" />
+    <remap from="input_depth_image" to="/camera/depth_registered/image_rect_raw" />
         
     <rosparam>
       show_text: True
