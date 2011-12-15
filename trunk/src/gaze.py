@@ -92,7 +92,9 @@ class Gaze:
         self.cps_values = list()
         self.cps_n_values = 20
         
-        self.featureFile = open('/home/ben/Desktop/features/batch1_features.dat','w')
+        self.featureFile = open('/home/ben/Desktop/features/batch9_features.dat','w')
+        self.clusters = [5,4,4,3,3,5,4,3,3][9-1]
+        
                         
         """ Wait until the image topics are ready before starting """
         rospy.wait_for_message(self.input_rgb_image, Image)
@@ -328,7 +330,7 @@ class Gaze:
         faces = []
         
         if self.seeds is None:
-            faces, centroids = dxySegment(np_depth, nClusters=5, skip=1)
+            faces, centroids = dxySegment(np_depth, nClusters=self.clusters, skip=1)
             self.seeds = centroids
         else:
             faces, centroids = dxySegment(np_depth, seeds=self.seeds, skip=1)
@@ -336,10 +338,13 @@ class Gaze:
             
         for faceNum, face in enumerate(sorted(faces)):
             # step 1: extract depth image according to face box
-            x1, x2, y1, y2 = face
-            if x1 > x2: x2, x1 = x1, x2
-            if y1 > y2: y2, y1 = y1, y2
+            x1, y1, x2, y2 = face
+            #if x1 > x2: x2, x1 = x1, x2
+            #if y1 > y2: y2, y1 = y1, y2
+            print x1, x2, y1, y2
             face_cropped = depth_im[y1:y2,x1:x2]
+            f_cropped_rgb = cv_image[y1:y2,x1:x2]
+            cv.ShowImage('face box', f_cropped_rgb)
             
             # step 2: resize depth image into 20x20
             face_small = cv.CreateMat(20, 20, cv.CV_16UC1)
