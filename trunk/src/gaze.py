@@ -24,6 +24,8 @@ class Gaze:
         self.input_rgb_image = "input_rgb_image"
         self.input_depth_image = "input_depth_image"
         
+        self.prevDepth = None
+        
         self.pubFaceCloud = rospy.Publisher('gaze_cloud', PointCloud2)
                 
         """ Initialize a number of global variables """
@@ -43,6 +45,8 @@ class Gaze:
         self.cv_window_name = self.node_name
         cv.NamedWindow(self.cv_window_name, cv.CV_NORMAL)
         cv.ResizeWindow(self.cv_window_name, 640, 480)
+        
+        cv.NamedWindow('face box')
         
         """ Create the cv_bridge object """
         self.bridge = CvBridge()   
@@ -87,6 +91,8 @@ class Gaze:
         self.cps = 0 # Cycles per second = number of processing loops per second.
         self.cps_values = list()
         self.cps_n_values = 20
+        
+        self.featureFile = open('/home/ben/Desktop/features/batch1_features.dat','w')
                         
         """ Wait until the image topics are ready before starting """
         rospy.wait_for_message(self.input_rgb_image, Image)
@@ -307,20 +313,41 @@ class Gaze:
         if not self.depth_image: 
             print 'no depth image'
             return
-
-    
+            
+        
+        if np.all(np.asarray(self.depth_image) == self.prevDepth):
+            return
+            
+        self.prevDepth = np.asarray(self.depth_image).copy()
+        
         np_image = np.asarray(cv_image).copy()
         np_depth = np.asarray(self.depth_image).copy()
-        np_depth[np_depth > 2000] = 0
+        depth_im = cv.fromarray(np_depth)
+        #np_depth[np_depth > 2000] = 0
     
         faces = []
-    
-        '''if self.seeds is None:
-            faces, centroids = dxySegment(np_depth, nClusters=2, skip=4)
+        
+        if self.seeds is None:
+            faces, centroids = dxySegment(np_depth, nClusters=5, skip=1)
             self.seeds = centroids
         else:
-            faces, centroids = dxySegment(np_depth, seeds=self.seeds, skip=4)
-            self.seeds = centroids'''             
+            faces, centroids = dxySegment(np_depth, seeds=self.seeds, skip=1)
+            self.seeds = centroids
+            
+        for faceNum, face in enumerate(sorted(faces)):
+            # step 1: extract depth image according to face box
+            x1, x2, y1, y2 = face
+            if x1 > x2: x2, x1 = x1, x2
+            if y1 > y2: y2, y1 = y1, y2
+            face_cropped = depth_im[y1:y2,x1:x2]
+            
+            # step 2: resize depth image into 20x20
+            face_small = cv.CreateMat(20, 20, cv.CV_16UC1)
+            cv.Resize(face_cropped, face_small)
+            
+            # step 3: output feature vector as flattened (400-dimensional) array
+            self.featureFile.write(str(faceNum+1) + '\t' + '\t'.join([str(x) for x in np.asarray(face_small).flatten()]) + '\n')
+            print str(faceNum+1) + '\t' + '\t'.join([str(x) for x in np.asarray(face_small).flatten()[:7]])
         
         """ Process the image to detect and track objects or features """
         '''if self.depthFrameNum == self.prevFrameNum: 
@@ -355,16 +382,16 @@ class Gaze:
         #cv.CmpS(self.depth_image, 0, self.mask, cv.CV_CMP_NE)
         #cv.Copy(cv_image, self.display_image, mask=self.mask)
         
-        np_image[np_depth == 0] = 0
+        #np_image[np_depth == 0] = 0
         self.display_image = cv.fromarray(np_image)
             
-        for (x,y,x2,y2) in faces:
+        for pl, (x,y,x2,y2) in enumerate(sorted(faces)):
             cv.Rectangle(self.display_image, (cv.Round(x), cv.Round(y)),
                                              (cv.Round(x2), cv.Round(y2)), 
-                                             cv.RGB(255, 0, 0), 2, 8, 0)
+                                             cv.RGB(255, pl*50, 0), 2, 8, 0)
         
         """ Handle keyboard events """
-        self.keystroke = cv.WaitKey(5)
+        self.keystroke = cv.WaitKey(2)
             
         end = time.time()
         duration = end - start
@@ -378,9 +405,9 @@ class Gaze:
             text_font = cv.InitFont(cv.CV_FONT_VECTOR0, 1, 1, 0, 2, 8)
             """ Print cycles per second (CPS) and resolution (RES) at top of the image """
             cv.PutText(self.display_image, "FPS: " + str(self.cps), (10, int(self.image_size[1] * 0.1)), text_font, cv.RGB(255, 255, 0))
-            cv.PutText(self.display_image, "RES: " + str(self.image_size[0]) + "X" + str(self.image_size[1]), (int(self.image_size[0] * 0.6), int(self.image_size[1] * 0.1)), text_font, cv.RGB(255, 255, 0))
+            #cv.PutText(self.display_image, "RES: " + str(self.image_size[0]) + "X" + str(self.image_size[1]), (int(self.image_size[0] * 0.6), int(self.image_size[1] * 0.1)), text_font, cv.RGB(255, 255, 0))
             
-        self.display_markers()
+        #self.display_markers()
 
         # Now display the image.
         cv.ShowImage(self.node_name, self.display_image)
@@ -406,7 +433,7 @@ class Gaze:
             
             #ros_image.step = 1280 # weird bug here -- only needed for dat?
             depth_image = self.bridge.imgmsg_to_cv(ros_image, "16UC1") #"32FC1"
-            self.depthFrameNum += 1
+
             return depth_image
     
         except CvBridgeError, e:
@@ -476,6 +503,7 @@ class Gaze:
         
     def cleanup(self):
         print "Shutting down vision node."
+        self.featureFile.close()
         cv.DestroyAllWindows()  
     
 def main(args):
