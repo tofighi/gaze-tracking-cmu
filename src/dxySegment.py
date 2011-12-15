@@ -27,7 +27,7 @@ def dxySegment(d_full, nClusters=5, graphics=False, seeds=None, skip=4, verbose=
     
     d = d_full.copy()
     
-    d[:50,:] = 0
+    d[:70,:] = 0
     d = d[:-200,:] # snip off the last 100 rows
     width, height = d.shape    
     
@@ -58,8 +58,8 @@ def dxySegment(d_full, nClusters=5, graphics=False, seeds=None, skip=4, verbose=
     d_filtered = d_filtered[d_filtered!=0]
     
     # should use a proper distance threshold here
-    Y_filtered = Y_filtered[d_filtered<0.4] 
-    d_filtered = d_filtered[d_filtered<0.4]
+    Y_filtered = Y_filtered[d_filtered<0.18] 
+    d_filtered = d_filtered[d_filtered<0.18]
     
     if verbose: print 'preparing data', time.time() - st; st = time.time()
     
@@ -103,9 +103,9 @@ def dxySegment(d_full, nClusters=5, graphics=False, seeds=None, skip=4, verbose=
             xmin = np.min(X_cluster)
             Y_face = Y_cluster[X_cluster < xmin+face_height]
             ymin, ymax = np.min(Y_face), np.max(Y_face)
-            rects.append([ymin, xmin, ymax, xmin+face_height])
+            rects.append([ymin-1, xmin, ymax+1, xmin+face_height])
             if graphics:
-                cv.Rectangle(cv_im, (ymin, xmin), (ymax, xmin+60), (0, 255, 255), 2)
+                cv.Rectangle(cv_im, (ymin-1, xmin), (ymax+1, xmin+60), (0, 255, 255), 2)
         except: pass
         
     if verbose: print 'finding bounding boxes', time.time() - st; st = time.time()
