@@ -12,6 +12,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import time
 import sys
 from lk import lk
+from dxySegment import dxySegment
 
 class Gaze:
     def __init__(self, node_name):
@@ -24,8 +25,7 @@ class Gaze:
         self.input_depth_image = "input_depth_image"
         
         self.pubFaceCloud = rospy.Publisher('gaze_cloud', PointCloud2)
-        self.pubFaceNormals = rospy.Publisher('gaze_markers', Marker)
-        
+                
         """ Initialize a number of global variables """
         self.image = None
         self.image_size = None
@@ -35,6 +35,7 @@ class Gaze:
         self.prev = None
         self.prev_img = None
         self.show_text = True
+        self.prevFrameNum = 1
         
         self.mask = None
 
@@ -69,6 +70,8 @@ class Gaze:
         
         self.camera_frame_id = "kinect_depth_optical_frame"
         
+        self.depthFrameNum = 1
+        
         self.drag_start = None
         self.selections = []
         
@@ -78,6 +81,8 @@ class Gaze:
         self.haar_scale = 1.5
         self.min_neighbors = 1
         self.haar_flags = cv.CV_HAAR_DO_CANNY_PRUNING
+        
+        self.seeds = None
         
         self.cps = 0 # Cycles per second = number of processing loops per second.
         self.cps_values = list()
@@ -185,25 +190,28 @@ class Gaze:
                 
                 xyz_all.extend(xyz)
                 
-                n = len(xyz)
-                mu = np.sum(xyz, axis=0)/n
-                xyz_norm = xyz - mu
-                cov = np.dot(xyz_norm.T, xyz_norm)/n
-                e, v = eig(cov)
-                
-                #print v[2]
-                
-                if v[2][2] > 0: v[2] = -v[2]
-                
-                # publish marker here
-                if colorFlag == 1:
-                    m = self.makeMarker(mu, v[2], idNum=idNum, color=(1,0,0))
-                    print '%d %f %f %f' % (boxNum, v[2][0], v[2][1], v[2][2]),
-                else:
-                    m = self.makeMarker(mu, v[2], idNum=idNum, color=(0,1,0))
-                    print '%f %f %f ' % (v[2][0], v[2][1], v[2][2])
-                idNum += 1
-                self.pubFaceNormals.publish(m)
+                try:
+                    n = len(xyz)
+                    mu = np.sum(xyz, axis=0)/n
+                    xyz_norm = xyz - mu
+                    cov = np.dot(xyz_norm.T, xyz_norm)/n
+                    e, v = eig(cov)
+                    
+                    #print v[2]
+                    
+                    if v[2][2] > 0: v[2] = -v[2]
+                    
+                    # publish marker here
+                    if colorFlag == 1:
+                        m = self.makeMarker(mu, v[2], idNum=idNum, color=(1,0,0))
+                        print '%d %f %f %f' % (boxNum, v[2][0], v[2][1], v[2][2]),
+                    else:
+                        m = self.makeMarker(mu, v[2], idNum=idNum, color=(0,1,0))
+                        print '%f %f %f ' % (v[2][0], v[2][1], v[2][2])
+                    idNum += 1
+                    self.pubFaceNormals.publish(m)
+                except:
+                    pass
             boxNum += 1
           
         # getting rid of bad markers in rviz by sending them away  
@@ -288,34 +296,67 @@ class Gaze:
 
         """ Copy the current frame to the global image in case we need it elsewhere"""
         cv.Copy(cv_image, self.image)
+        
         #cv.Copy(cv_image, self.display_image)
         
         #faces = self.detect_faces(cv_image)
-        faces = self.selections #((148,140,216,224),(424,166,500,238),(276,150,350,234))
+        #faces = self.selections #((148,140,216,224),(424,166,500,238),(276,150,350,234))
+        
+        
+        
+        if not self.depth_image: 
+            print 'no depth image'
+            return
+
+    
+        np_image = np.asarray(cv_image).copy()
+        np_depth = np.asarray(self.depth_image).copy()
+        np_depth[np_depth > 2000] = 0
+    
+        faces = []
+    
+        '''if self.seeds is None:
+            faces, centroids = dxySegment(np_depth, nClusters=2, skip=4)
+            self.seeds = centroids
+        else:
+            faces, centroids = dxySegment(np_depth, seeds=self.seeds, skip=4)
+            self.seeds = centroids'''             
         
         """ Process the image to detect and track objects or features """
-        if np.all(np.asarray(cv_image) == self.prev_img): pass
+        '''if self.depthFrameNum == self.prevFrameNum: 
+            pass
         else:
-            tracked_faces = []
             curr = np.asarray(self.depth_image)
-            '''for facebox in faces:
-                u, v = lk(curr,self.prev,facebox)
-                tracked_faces.append((facebox[0]+u,
-                                      facebox[1]+v,
-                                      facebox[2]+u,
-                                      facebox[3]+v))
-                
-            faces = tracked_faces
-            self.selections = faces'''
-            self.prev = curr
+            
+            ### TRACKING WITH LUCAS-KANADE
+            tracked_faces = []
+            
+            if self.prev is not None:
+                for facebox in faces:
+                    u, v = lk(curr,self.prev,facebox)
+                    print 'tracking...', u, v
+                    tracked_faces.append((facebox[0]+u,
+                                          facebox[1]+v,
+                                          facebox[2]+u,
+                                          facebox[3]+v))
+                    
+                faces = tracked_faces
+                self.selections = faces
+            self.prev = curr.copy()
             self.prev_img = np.asarray(cv_image)
-            self.process_faces(faces)
+            self.prevFrameNum = self.depthFrameNum
+            self.process_faces(faces)'''
+            
 
-        self.mask = cv.CreateImage(self.image_size, 8, 1)  
-        self.display_image = cv.CreateImage(self.image_size, 8, 3) 
-        cv.Set(self.display_image,0)         
-        cv.CmpS(self.depth_image, 0, self.mask, cv.CV_CMP_NE)
-        cv.Copy(cv_image, self.display_image, mask=self.mask)
+        #self.mask = cv.CreateImage(self.image_size, 8, 1)  
+        #self.display_image = cv.CreateImage(self.image_size, 8, 3) 
+        #cv.Set(self.display_image,0)         
+        #cv.CmpS(cv.fromarray(np.asarray(self.depth_image).astype(np.uint8)), 0, self.mask, cv.CV_CMP_NE)
+        #cv.CmpS(self.depth_image, 0, self.mask, cv.CV_CMP_NE)
+        #cv.Copy(cv_image, self.display_image, mask=self.mask)
+        
+        np_image[np_depth == 0] = 0
+        self.display_image = cv.fromarray(np_image)
             
         for (x,y,x2,y2) in faces:
             cv.Rectangle(self.display_image, (cv.Round(x), cv.Round(y)),
@@ -365,7 +406,7 @@ class Gaze:
             
             #ros_image.step = 1280 # weird bug here -- only needed for dat?
             depth_image = self.bridge.imgmsg_to_cv(ros_image, "16UC1") #"32FC1"
-            
+            self.depthFrameNum += 1
             return depth_image
     
         except CvBridgeError, e:
