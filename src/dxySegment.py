@@ -151,7 +151,7 @@ if __name__ == '__main__':
             im = im2
             
         if i == 0:
-            r, seeds = dxySegment(im, graphics=True, seeds=None, skip=10, verbose=True, nClusters=5)
+            r, seeds = dxySegment(im, graphics=False, seeds=None, skip=10, verbose=True, nClusters=5)
         else:
-            dxySegment(im, graphics=True, seeds=seeds, skip=10, verbose=True, nClusters=5)
+            dxySegment(im, graphics=False, seeds=seeds, skip=100, verbose=True, nClusters=5)
         cv.WaitKey(3)
